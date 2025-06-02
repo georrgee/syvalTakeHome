@@ -36,6 +36,8 @@ export default function HomeScreen() {
   const [postText, setPostText] = useState('');
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [selectedHashtag, setSelectedHashtag] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
 
   const mockHashtags = [
     { id: '1', name: '#reflect', color: '#E3D1A1' },
@@ -44,6 +46,36 @@ export default function HomeScreen() {
     { id: '4', name: '#uncertain', color: '#c8c5c6' },
     { id: '5', name: '#necessary', color: '#745ba5' },
     { id: '6', name: '#supportive', color: '#ec7aab' },
+  ];
+
+  const categories = [
+    { name: "Bank Fees", emoji: "🏦" },
+    { name: "Clothing", emoji: "👕" },
+    { name: "Coffee Shop", emoji: "☕" },
+    { name: "Community", emoji: "🏘️" },
+    { name: "Credit Card", emoji: "💳" },
+    { name: "Education", emoji: "📚" },
+    { name: "Entertainment", emoji: "🎬" },
+    { name: "Food and Drink", emoji: "🍽️" },
+    { name: "Gas Stations", emoji: "⛽" },
+    { name: "General Merchandise", emoji: "🛍️" },
+    { name: "Groceries", emoji: "🛒" },
+    { name: "Healthcare", emoji: "🏥" },
+    { name: "Home Improvement", emoji: "🔨" },
+    { name: "Loan", emoji: "💰" },
+    { name: "Mortgage", emoji: "🏠" },
+    { name: "Payment", emoji: "💸" },
+    { name: "Personal Care", emoji: "💅" },
+    { name: "Recreation", emoji: "🎯" },
+    { name: "Rent", emoji: "🏢" },
+    { name: "Restaurants", emoji: "🍴" },
+    { name: "Service", emoji: "🔧" },
+    { name: "Shopping", emoji: "🛒" },
+    { name: "Subscription", emoji: "📱" },
+    { name: "Transfer", emoji: "💸" },
+    { name: "Transportation", emoji: "🚗" },
+    { name: "Travel", emoji: "✈️" },
+    { name: "Utilities", emoji: "💡" }
   ];
 
   const mockTransactions: Transaction[] = [
@@ -109,7 +141,10 @@ export default function HomeScreen() {
     setPostText('');
     setSelectedTransaction(null);
     setSelectedHashtag(null);
+    setSelectedCategory(null);
+    setShowCategoryDropdown(false);
   };
+
 
   const handleHashtagSelect = (hashtag: string) => {
     setSelectedHashtag(selectedHashtag === hashtag ? null : hashtag);
@@ -140,11 +175,30 @@ export default function HomeScreen() {
 
   const handleTransactionSelect = (transaction: Transaction) => {
     setSelectedTransaction(transaction);
+    setSelectedCategory(null); // Reset category when new transaction is selected
+    setShowCategoryDropdown(false);
   };
 
-  const formatTransactionText = (transaction: Transaction) => {
-    return `💳 ${transaction.name} • ${transaction.price}`;
+  const handleCategorySelect = (categoryName: string) => {
+    setSelectedCategory(categoryName);
+    setShowCategoryDropdown(false);
   };
+
+  const toggleCategoryDropdown = () => {
+    if (selectedTransaction) {
+      setShowCategoryDropdown(!showCategoryDropdown);
+    }
+  };
+
+  // const renderCategoryItem = ({ item }: { item: { name: string; emoji: string } }) => (
+  //   <TouchableOpacity
+  //     style={styles.categoryDropdownItem}
+  //     onPress={() => handleCategorySelect(item.name)}
+  //   >
+  //     <ThemedText style={styles.categoryEmoji}>{item.emoji}</ThemedText>
+  //     <ThemedText style={styles.categoryName}>{item.name}</ThemedText>
+  //   </TouchableOpacity>
+  // );
 
   const renderTransactionItem = ({ item }: { item: Transaction }) => (
     <TouchableOpacity
@@ -287,9 +341,53 @@ export default function HomeScreen() {
                   <TouchableOpacity style={styles.actionButton}>
                     <Ionicons name="image-outline" size={24} color="#5643F4" />
                   </TouchableOpacity>
-                  <TouchableOpacity style={styles.actionButton}>
-                    <Ionicons name="grid-outline" size={24} color="#5643F4" />
-                  </TouchableOpacity>
+
+                  {/* Category Button */}
+                  <View style={styles.categoryButtonContainer}>
+                    <TouchableOpacity
+                      style={[
+                        styles.categoryButton,
+                        !selectedTransaction && styles.categoryButtonDisabled
+                      ]}
+                      onPress={toggleCategoryDropdown}
+                      disabled={!selectedTransaction}
+                    >
+                      <ThemedText style={[
+                        styles.categoryButtonText,
+                        !selectedTransaction && styles.categoryButtonTextDisabled
+                      ]}>
+                        {selectedCategory || "Category"}
+                      </ThemedText>
+                      <Ionicons
+                        name={showCategoryDropdown ? "chevron-up" : "chevron-down"}
+                        size={16}
+                        color={selectedTransaction ? "#5643F4" : "#ccc"}
+                      />
+                    </TouchableOpacity>
+
+                    {/* Category Dropdown */}
+                    {showCategoryDropdown && (
+                      <View style={styles.categoryDropdown}>
+                        <ScrollView 
+                          style={styles.categoryDropdownList}
+                          showsVerticalScrollIndicator={false}
+                          nestedScrollEnabled={true}
+                        >
+                          {categories.map((item) => (
+                            <TouchableOpacity
+                              key={item.name}
+                              style={styles.categoryDropdownItem}
+                              onPress={() => handleCategorySelect(item.name)}
+                            >
+                              <ThemedText style={styles.categoryEmoji}>{item.emoji}</ThemedText>
+                              <ThemedText style={styles.categoryName}>{item.name}</ThemedText>
+                            </TouchableOpacity>
+                          ))}
+                        </ScrollView>
+                      </View>
+                    )}
+                  </View>
+
                   <TouchableOpacity style={styles.actionButton}>
                     <Ionicons name="at-outline" size={24} color="#5643F4" />
                   </TouchableOpacity>
@@ -665,6 +763,86 @@ const styles = StyleSheet.create({
   hashtagText: {
     fontSize: 14,
     fontWeight: '500',
+  },
+
+  // Category Button Styles
+  categoryButtonContainer: {
+    position: 'relative',
+    marginHorizontal: 8,
+  },
+
+  categoryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#5643F4',
+    backgroundColor: '#fff',
+    minWidth: 120, // Increased from 100
+    justifyContent: 'space-between',
+  },
+
+  categoryButtonDisabled: {
+    borderColor: '#ccc',
+    backgroundColor: '#f5f5f5',
+  },
+
+  categoryButtonText: {
+    fontSize: 14,
+    color: '#5643F4',
+    fontWeight: '500',
+    marginRight: 4,
+  },
+
+  categoryButtonTextDisabled: {
+    color: '#ccc',
+  },
+
+  categoryDropdown: {
+    position: 'absolute',
+    top: 45,
+    left: 0,
+    minWidth: 180, // Increased width
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e1e8ed',
+    maxHeight: 200,
+    zIndex: 1000,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+
+  categoryDropdownList: {
+    maxHeight: 200,
+  },
+
+  categoryDropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    // borderBottomWidth: 1,
+    // borderBottomColor: '#f0f0f0',
+  },
+
+  categoryEmoji: {
+    fontSize: 18,
+    marginRight: 12,
+  },
+
+  categoryName: {
+    fontSize: 14,
+    color: '#333',
+    flex: 1,
   },
 
 });
