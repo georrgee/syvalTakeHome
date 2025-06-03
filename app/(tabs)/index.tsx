@@ -3,7 +3,13 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
-import { FlatList, Modal, SafeAreaView, ScrollView, StatusBar, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  FlatList,
+  Keyboard,
+  Modal, SafeAreaView,
+  ScrollView, StatusBar,
+  StyleSheet, TextInput, TouchableOpacity, View
+} from 'react-native';
 
 export interface PostItem {
   id: string;
@@ -28,6 +34,10 @@ export interface Transaction {
   date: string;
 }
 
+export interface Friend {
+  id: string;
+  name: string;
+}
 
 export default function HomeScreen() {
 
@@ -38,6 +48,17 @@ export default function HomeScreen() {
   const [selectedHashtag, setSelectedHashtag] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [taggedFriends, setTaggedFriends] = useState<Friend[]>([]);
+  const [showFriendsDropdown, setShowFriendsDropdown] = useState(false);
+  const [friendSearchText, setFriendSearchText] = useState('');
+
+  const mockFriends: Friend[] = [
+    { id: '1', name: 'Haruka' },
+    { id: '2', name: 'Rey Delgado' },
+    { id: '3', name: 'Danica' },
+    { id: '4', name: 'Carl' },
+    { id: '5', name: 'Jeff' }
+  ];
 
   const mockHashtags = [
     { id: '1', name: '#reflect', color: '#E3D1A1' },
@@ -143,8 +164,52 @@ export default function HomeScreen() {
     setSelectedHashtag(null);
     setSelectedCategory(null);
     setShowCategoryDropdown(false);
+    setTaggedFriends([]);
+    setShowFriendsDropdown(false);
+    setFriendSearchText('');
   };
 
+  const dismissDropdowns = () => {
+    setShowCategoryDropdown(false);
+    setShowFriendsDropdown(false);
+    Keyboard.dismiss();
+  };
+
+  const handleFriendTag = (friend: Friend) => {
+    if (taggedFriends.length >= 5) {
+      // Optional: Show alert or toast that limit is reached
+      return;
+    }
+
+    if (!taggedFriends.find(f => f.id === friend.id)) {
+      const newTaggedFriends = [...taggedFriends, friend];
+      setTaggedFriends(newTaggedFriends);
+    }
+
+    setShowFriendsDropdown(false);
+    setFriendSearchText('');
+  };
+
+  const handleRemoveFriend = (friendId: string) => {
+    const friendToRemove = taggedFriends.find(f => f.id === friendId);
+    if (friendToRemove) {
+      setTaggedFriends(taggedFriends.filter(f => f.id !== friendId));
+
+      // Remove @mention from post text
+      const mention = `@${friendToRemove.name}`;
+      setPostText(prev => prev.replace(new RegExp(`\\s*${mention}\\s*`, 'g'), ' ').trim());
+    }
+  };
+
+  const toggleFriendsDropdown = () => {
+    setShowFriendsDropdown(!showFriendsDropdown);
+    setFriendSearchText('');
+  };
+
+  const filteredFriends = mockFriends.filter(friend =>
+    friend.name.toLowerCase().includes(friendSearchText.toLowerCase()) &&
+    !taggedFriends.find(tagged => tagged.id === friend.id)
+  );
 
   const handleHashtagSelect = (hashtag: string) => {
     setSelectedHashtag(selectedHashtag === hashtag ? null : hashtag);
@@ -189,16 +254,6 @@ export default function HomeScreen() {
       setShowCategoryDropdown(!showCategoryDropdown);
     }
   };
-
-  // const renderCategoryItem = ({ item }: { item: { name: string; emoji: string } }) => (
-  //   <TouchableOpacity
-  //     style={styles.categoryDropdownItem}
-  //     onPress={() => handleCategorySelect(item.name)}
-  //   >
-  //     <ThemedText style={styles.categoryEmoji}>{item.emoji}</ThemedText>
-  //     <ThemedText style={styles.categoryName}>{item.name}</ThemedText>
-  //   </TouchableOpacity>
-  // );
 
   const renderTransactionItem = ({ item }: { item: Transaction }) => (
     <TouchableOpacity
@@ -312,27 +367,7 @@ export default function HomeScreen() {
                   onChangeText={setPostText}
                   maxLength={280}
                   textAlignVertical="top"
-                  returnKeyType='next'
-                />
-
-                {/* Character Count */}
-                {/* <View style={styles.characterCount}>
-                  <ThemedText style={styles.characterCountText}>
-                    Title: {postTitle.length}/60 • Body: {postText.length}/280
-                  </ThemedText>
-                </View> */}
-
-                {/* Selected Transaction Preview */}
-                {/* {selectedTransaction && (
-                  <View style={styles.selectedTransactionPreview}>
-                    <ThemedText style={styles.previewLabel}>Selected Transaction:</ThemedText>
-                    <View style={styles.previewContent}>
-                      <ThemedText style={styles.previewText}>
-                        {formatTransactionText(selectedTransaction)}
-                      </ThemedText>
-                    </View>
-                  </View>
-                )} */}
+                  returnKeyType='next' />
               </View>
 
               {/* Bottom Actions */}
@@ -371,14 +406,12 @@ export default function HomeScreen() {
                         <ScrollView 
                           style={styles.categoryDropdownList}
                           showsVerticalScrollIndicator={false}
-                          nestedScrollEnabled={true}
-                        >
+                          nestedScrollEnabled={true}>
                           {categories.map((item) => (
                             <TouchableOpacity
                               key={item.name}
                               style={styles.categoryDropdownItem}
-                              onPress={() => handleCategorySelect(item.name)}
-                            >
+                              onPress={() => handleCategorySelect(item.name)}>
                               <ThemedText style={styles.categoryEmoji}>{item.emoji}</ThemedText>
                               <ThemedText style={styles.categoryName}>{item.name}</ThemedText>
                             </TouchableOpacity>
@@ -388,11 +421,103 @@ export default function HomeScreen() {
                     )}
                   </View>
 
-                  <TouchableOpacity style={styles.actionButton}>
-                    <Ionicons name="at-outline" size={24} color="#5643F4" />
-                  </TouchableOpacity>
+                  {/* @ Button with Friends Dropdown */}
+                  <View style={styles.friendsButtonContainer}>
+                    <TouchableOpacity
+                      style={[styles.actionButton, taggedFriends.length > 0 && styles.actionButtonActive]}
+                      onPress={toggleFriendsDropdown}
+                    >
+                      <Ionicons name="at-outline" size={24} color={taggedFriends.length > 0 ? "#fff" : "#5643F4"} />
+                      {taggedFriends.length > 0 && (
+                        <View style={styles.friendsBadge}>
+                          <ThemedText style={styles.friendsBadgeText}>{taggedFriends.length}</ThemedText>
+                        </View>
+                      )}
+                    </TouchableOpacity>
+
+                    {/* Friends Dropdown */}
+                    {showFriendsDropdown && (
+                      <View style={styles.friendsDropdown}>
+                        {/* Dropdown Header with Close Button */}
+                        <View style={styles.friendsDropdownHeader}>
+                          <TextInput
+                            style={styles.friendsSearchInput}
+                            placeholder="Search friends..."
+                            placeholderTextColor="#666"
+                            value={friendSearchText}
+                            onChangeText={setFriendSearchText}
+                            autoFocus
+                          />
+                          <TouchableOpacity
+                            style={styles.friendsCloseButton}
+                            onPress={toggleFriendsDropdown}
+                          >
+                            <Ionicons name="close" size={20} color="#666" />
+                          </TouchableOpacity>
+                        </View>
+                        <ScrollView
+                          style={styles.friendsDropdownList}
+                          showsVerticalScrollIndicator={false}
+                          nestedScrollEnabled={true}
+                        >
+                          {filteredFriends.length > 0 ? (
+                            filteredFriends.map((friend) => (
+                              <TouchableOpacity
+                                key={friend.id}
+                                style={styles.friendsDropdownItem}
+                                onPress={() => handleFriendTag(friend)}
+                              >
+                                <View style={styles.friendAvatar}>
+                                  <ThemedText style={styles.friendAvatarText}>
+                                    {friend.name.charAt(0).toUpperCase()}
+                                  </ThemedText>
+                                </View>
+                                <ThemedText style={styles.friendName}>{friend.name}</ThemedText>
+                              </TouchableOpacity>
+                            ))
+                          ) : (
+                            <View style={styles.noFriendsFound}>
+                              <ThemedText style={styles.noFriendsText}>
+                                {friendSearchText ? 'No friends found' : 'All friends tagged'}
+                              </ThemedText>
+                            </View>
+                          )}
+                        </ScrollView>
+                        {taggedFriends.length >= 5 && (
+                          <View style={styles.friendsLimitWarning}>
+                            <ThemedText style={styles.friendsLimitText}>Maximum 5 friends can be tagged</ThemedText>
+                          </View>
+                        )}
+                      </View>
+                    )}
+                  </View>
                 </View>
               </View>
+              
+
+              {/* Tagged Friends Chips */}
+              {taggedFriends.length > 0 && (
+                <View style={styles.taggedFriendsSection}>
+                  <ThemedText style={styles.taggedFriendsLabel}>Tagged Friends:</ThemedText>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    style={styles.taggedFriendsContainer}
+                  >
+                    {taggedFriends.map((friend) => (
+                      <View key={friend.id} style={styles.friendChip}>
+                        <ThemedText style={styles.friendChipText}>@{friend.name}</ThemedText>
+                        <TouchableOpacity
+                          style={styles.friendChipRemove}
+                          onPress={() => handleRemoveFriend(friend.id)}
+                        >
+                          <Ionicons name="close" size={14} color="#666" />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
 
               {/* Hashtag Section */}
               <View style={styles.hashtagSection}>
@@ -843,6 +968,146 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#333',
     flex: 1,
+  },
+
+  // friends styling 
+  friendsButtonContainer: {
+    position: 'relative',
+  },
+  actionButtonActive: {
+    backgroundColor: '#5643F4',
+    borderRadius: 20,
+  },
+  friendsBadge: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    backgroundColor: '#ff4444',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  friendsBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  friendsDropdown: {
+    position: 'absolute',
+    top: 50, // Changed from bottom: 50 to top: 50
+    right: 0,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 5,
+    minWidth: 200,
+    maxHeight: 300,
+    zIndex: 1000,
+  },
+  
+  // friendsSearchInput: {
+  //   padding: 12,
+  //   borderBottomWidth: 1,
+  //   borderBottomColor: '#eee',
+  //   fontSize: 16,
+  // },
+  friendsDropdownList: {
+    maxHeight: 200,
+  },
+  friendsDropdownItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f5f5f5',
+  },
+  friendAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#5643F4',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  friendAvatarText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  friendName: {
+    fontSize: 16,
+    color: '#333',
+  },
+  noFriendsFound: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  noFriendsText: {
+    color: '#666',
+    fontSize: 14,
+  },
+  friendsLimitWarning: {
+    padding: 8,
+    backgroundColor: '#fff3cd',
+    borderTopWidth: 1,
+    borderTopColor: '#ffeaa7',
+  },
+  friendsLimitText: {
+    color: '#856404',
+    fontSize: 12,
+    textAlign: 'center',
+  },
+  taggedFriendsSection: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+  },
+  taggedFriendsLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 8,
+  },
+  taggedFriendsContainer: {
+    flexDirection: 'row',
+  },
+  friendChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginRight: 8,
+  },
+  friendChipText: {
+    fontSize: 14,
+    color: '#5643F4',
+    marginRight: 6,
+  },
+  friendChipRemove: {
+    padding: 2,
+  },
+
+  friendsDropdownHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  friendsSearchInput: {
+    flex: 1,
+    padding: 12,
+    fontSize: 16,
+  },
+  friendsCloseButton: {
+    padding: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
 });
