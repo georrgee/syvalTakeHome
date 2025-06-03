@@ -233,15 +233,20 @@ export default function HomeScreen() {
   );
 
   const handlePost = () => {
-    // Handle post creation logic here
     console.log('Creating post:', { title: postTitle, text: postText });
     handleCloseModal();
   };
 
   const handleTransactionSelect = (transaction: Transaction) => {
-    setSelectedTransaction(transaction);
-    setSelectedCategory(null); // Reset category when new transaction is selected
-    setShowCategoryDropdown(false);
+    if (selectedTransaction?.id === transaction.id) {
+      setSelectedTransaction(null);
+      setSelectedCategory(null); // Reset category when transaction is deselected
+      setShowCategoryDropdown(false);
+    } else {
+      setSelectedTransaction(transaction);
+      setSelectedCategory(null); // Reset category when new transaction is selected
+      setShowCategoryDropdown(false);
+    }
   };
 
   const handleCategorySelect = (categoryName: string) => {
@@ -327,10 +332,10 @@ export default function HomeScreen() {
               </ThemedText>
 
               <TouchableOpacity
-                style={[styles.postButton, (postText.trim() || selectedTransaction) ? styles.postButtonActive : styles.postButtonInactive]}
+                style={[styles.postButton, (selectedTransaction && selectedHashtag) ? styles.postButtonActive : styles.postButtonInactive]}
                 onPress={handlePost}
-                disabled={!(postText.trim() || selectedTransaction)}>
-                <ThemedText style={[styles.postButtonText, (postText.trim() || selectedTransaction) ? styles.postButtonTextActive : styles.postButtonTextInactive]}>
+                disabled={!(selectedTransaction && selectedHashtag)}>
+                <ThemedText style={[styles.postButtonText, (selectedTransaction && selectedHashtag) ? styles.postButtonTextActive : styles.postButtonTextInactive]}>
                   Post
                 </ThemedText>
               </TouchableOpacity>
@@ -349,7 +354,7 @@ export default function HomeScreen() {
                 {/* Title Input */}
                 <TextInput
                   style={styles.titleInput}
-                  placeholder="Title"
+                  placeholder="Title (optional)"
                   placeholderTextColor="#666"
                   value={postTitle}
                   onChangeText={setPostTitle}
@@ -360,7 +365,7 @@ export default function HomeScreen() {
                 {/* Body Input */}
                 <TextInput
                   style={styles.textInput}
-                  placeholder="Share your journey"
+                  placeholder="Share your journey (optional)"
                   placeholderTextColor="#666"
                   multiline
                   value={postText}
