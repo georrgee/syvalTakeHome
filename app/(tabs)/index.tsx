@@ -5,7 +5,6 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import {
   FlatList,
-  Keyboard,
   Modal, SafeAreaView,
   ScrollView, StatusBar,
   StyleSheet, TextInput, TouchableOpacity, View
@@ -51,6 +50,8 @@ export default function HomeScreen() {
   const [taggedFriends, setTaggedFriends] = useState<Friend[]>([]);
   const [showFriendsDropdown, setShowFriendsDropdown] = useState(false);
   const [friendSearchText, setFriendSearchText] = useState('');
+  const [selectedFeeling, setSelectedFeeling] = useState<string | null>(null);
+  const [showFeelingDropdown, setShowFeelingDropdown] = useState(false);
 
   const mockFriends: Friend[] = [
     { id: '1', name: 'Haruka' },
@@ -58,6 +59,12 @@ export default function HomeScreen() {
     { id: '3', name: 'Danica' },
     { id: '4', name: 'Carl' },
     { id: '5', name: 'Jeff' }
+  ];
+
+  const mockFeelings = [
+    { id: '1', emoji: '😊', label: 'Happy' },
+    { id: '2', emoji: '😐', label: 'Neutral' },
+    { id: '3', emoji: '😞', label: 'Sad' }
   ];
 
   const mockHashtags = [
@@ -148,9 +155,32 @@ export default function HomeScreen() {
       transaction: 'Saluhall Market Food & Drink',
       likes: 500,
       comments: 526,
-      image: 'https://via.placeholder.com/100', // Mock image URL
+      image: 'https://via.placeholder.com/100', 
+    },
+
+    {
+      id: '3',
+      name: 'Danica',
+      amount: '$526.92',
+      category: '#flex',
+      spendingStyle: 'The Supporter',
+      caption: `Great dinner with George's birthday`,
+      timestamp: '5h',
+      transaction: 'La Mar',
+      likes: 42,
+      comments: 5,
+      image: 'https://via.placeholder.com/101',
     },
   ];
+
+  const handleFeelingSelect = (feeling: string) => {
+    setSelectedFeeling(feeling);
+    setShowFeelingDropdown(false);
+  };
+
+  const toggleFeelingDropdown = () => {
+    setShowFeelingDropdown(!showFeelingDropdown);
+  };
 
   const handleCreatePost = () => {
     setIsCreatePostVisible(true);
@@ -167,17 +197,12 @@ export default function HomeScreen() {
     setTaggedFriends([]);
     setShowFriendsDropdown(false);
     setFriendSearchText('');
-  };
-
-  const dismissDropdowns = () => {
-    setShowCategoryDropdown(false);
-    setShowFriendsDropdown(false);
-    Keyboard.dismiss();
+    setSelectedFeeling(null);
+    setShowFeelingDropdown(false);
   };
 
   const handleFriendTag = (friend: Friend) => {
     if (taggedFriends.length >= 5) {
-      // Optional: Show alert or toast that limit is reached
       return;
     }
 
@@ -332,10 +357,10 @@ export default function HomeScreen() {
               </ThemedText>
 
               <TouchableOpacity
-                style={[styles.postButton, (selectedTransaction && selectedHashtag) ? styles.postButtonActive : styles.postButtonInactive]}
+                style={[styles.postButton, (selectedTransaction && selectedHashtag && selectedFeeling) ? styles.postButtonActive : styles.postButtonInactive]}
                 onPress={handlePost}
-                disabled={!(selectedTransaction && selectedHashtag)}>
-                <ThemedText style={[styles.postButtonText, (selectedTransaction && selectedHashtag) ? styles.postButtonTextActive : styles.postButtonTextInactive]}>
+                disabled={!(selectedTransaction && selectedHashtag && selectedFeeling)}>
+                <ThemedText style={[styles.postButtonText, (selectedTransaction && selectedHashtag && selectedFeeling) ? styles.postButtonTextActive : styles.postButtonTextInactive]}>
                   Post
                 </ThemedText>
               </TouchableOpacity>
@@ -378,6 +403,7 @@ export default function HomeScreen() {
               {/* Bottom Actions */}
               <View style={styles.modalFooter}>
                 <View style={styles.footerActions}>
+                  {/* Picture Button */}
                   <TouchableOpacity style={styles.actionButton}>
                     <Ionicons name="image-outline" size={24} color="#5643F4" />
                   </TouchableOpacity>
@@ -386,14 +412,14 @@ export default function HomeScreen() {
                   <View style={styles.categoryButtonContainer}>
                     <TouchableOpacity
                       style={[
-                        styles.categoryButton,
+                        styles.categoryButton, selectedCategory && { backgroundColor: '#5643F4'},
                         !selectedTransaction && styles.categoryButtonDisabled
                       ]}
                       onPress={toggleCategoryDropdown}
                       disabled={!selectedTransaction}
                     >
                       <ThemedText style={[
-                        styles.categoryButtonText,
+                        styles.categoryButtonText, selectedCategory && { color: '#fff' },
                         !selectedTransaction && styles.categoryButtonTextDisabled
                       ]}>
                         {selectedCategory || "Category"}
@@ -401,14 +427,17 @@ export default function HomeScreen() {
                       <Ionicons
                         name={showCategoryDropdown ? "chevron-up" : "chevron-down"}
                         size={16}
-                        color={selectedTransaction ? "#5643F4" : "#ccc"}
+                        color={selectedCategory ? "white" : "#5643F4"}
                       />
                     </TouchableOpacity>
 
                     {/* Category Dropdown */}
                     {showCategoryDropdown && (
                       <View style={styles.categoryDropdown}>
-                        <ScrollView 
+                        <View style={styles.dropdownHeader}>
+                          <ThemedText style={styles.dropdownTitle}>Select Category</ThemedText>
+                        </View>
+                        <ScrollView
                           style={styles.categoryDropdownList}
                           showsVerticalScrollIndicator={false}
                           nestedScrollEnabled={true}>
@@ -443,12 +472,11 @@ export default function HomeScreen() {
                     {/* Friends Dropdown */}
                     {showFriendsDropdown && (
                       <View style={styles.friendsDropdown}>
-                        {/* Dropdown Header with Close Button */}
                         <View style={styles.friendsDropdownHeader}>
                           <TextInput
                             style={styles.friendsSearchInput}
-                            placeholder="Search friends..."
-                            placeholderTextColor="#666"
+                            placeholder="Search friends"
+                            placeholderTextColor="#999"
                             value={friendSearchText}
                             onChangeText={setFriendSearchText}
                             autoFocus
@@ -460,6 +488,7 @@ export default function HomeScreen() {
                             <Ionicons name="close" size={20} color="#666" />
                           </TouchableOpacity>
                         </View>
+
                         <ScrollView
                           style={styles.friendsDropdownList}
                           showsVerticalScrollIndicator={false}
@@ -496,6 +525,42 @@ export default function HomeScreen() {
                       </View>
                     )}
                   </View>
+
+                  {/* Feeling Button */}
+                  <View style={styles.feelingButtonContainer}>
+                    <TouchableOpacity
+                      style={[styles.feelingButton, selectedFeeling && styles.feelingButtonActive]}
+                      onPress={toggleFeelingDropdown}
+                    >
+                      <ThemedText style={[styles.feelingButtonText, selectedFeeling && styles.feelingButtonTextActive]}>
+                        {selectedFeeling ? `${selectedFeeling}` : "😶"}
+                      </ThemedText>
+                      <Ionicons
+                        name={showFeelingDropdown ? "chevron-up" : "chevron-down"}
+                        size={16}
+                        color={selectedFeeling ? "#fff" : "#5643F4"}
+                      />
+                    </TouchableOpacity>
+
+                    {/* Feeling Dropdown */}
+                    {showFeelingDropdown && (
+                      <View style={styles.feelingDropdown}>
+                        <View style={styles.feelingDropdownHeader}>
+                          <ThemedText style={styles.feelingDropdownTitle}>How do you feel about this?</ThemedText>
+                        </View>
+                        {mockFeelings.map((feeling) => (
+                          <TouchableOpacity
+                            key={feeling.id}
+                            style={styles.feelingDropdownItem}
+                            onPress={() => handleFeelingSelect(feeling.emoji)}
+                          >
+                            <ThemedText style={styles.feelingEmoji}>{feeling.emoji}</ThemedText>
+                            <ThemedText style={styles.feelingLabel}>{feeling.label}</ThemedText>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    )}
+                  </View>
                 </View>
               </View>
               
@@ -523,6 +588,9 @@ export default function HomeScreen() {
                   </ScrollView>
                 </View>
               )}
+              
+
+
 
               {/* Hashtag Section */}
               <View style={styles.hashtagSection}>
@@ -738,23 +806,33 @@ const styles = StyleSheet.create({
   },
 
   modalFooter: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     borderTopWidth: 1,
     borderTopColor: '#e1e8ed',
+    backgroundColor: '#fff',
   },
+
+
 
   footerActions: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-around',
+    paddingHorizontal: 8,
   },
+
 
   actionButton: {
-    marginRight: 20,
-    padding: 8,
+    padding: 12,
+    borderRadius: 24,
+    //backgroundColor: '#f8f9fa',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 48,
+    height: 48,
   },
-
-  // Transaction Sheet Styles
+ // Transaction Sheet Styles
   transactionSheet: {
     //backgroundColor: '#f8f9fa',
     borderTopLeftRadius: 20,
@@ -894,36 +972,37 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
-
+  
   // Category Button Styles
   categoryButtonContainer: {
     position: 'relative',
-    marginHorizontal: 8,
+    alignItems: 'center',
   },
 
   categoryButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#5643F4',
-    backgroundColor: '#fff',
-    minWidth: 120, // Increased from 100
-    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 24,
+    // borderWidth: 1,
+    // borderColor: '#5643F4',
+    //backgroundColor: '#fff',
+    minWidth: 100,
+    justifyContent: 'center',
+    height: 48,
   },
 
   categoryButtonDisabled: {
     borderColor: '#ccc',
-    backgroundColor: '#f5f5f5',
+    //backgroundColor: '#f5f5f5',
   },
 
   categoryButtonText: {
     fontSize: 14,
     color: '#5643F4',
     fontWeight: '500',
-    marginRight: 4,
+    marginRight: 6,
   },
 
   categoryButtonTextDisabled: {
@@ -932,45 +1011,63 @@ const styles = StyleSheet.create({
 
   categoryDropdown: {
     position: 'absolute',
-    top: 45,
-    left: 0,
-    minWidth: 180, // Increased width
+    top: 55,
+    left: '50%',
+    transform: [{ translateX: -90 }],
+    minWidth: 180,
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: '#e1e8ed',
-    maxHeight: 200,
+    maxHeight: 250,
     zIndex: 1000,
-    elevation: 5,
+    elevation: 8,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
-      height: 2,
+      height: 4,
     },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+  },
+
+  // Add new dropdown header style
+  dropdownHeader: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    backgroundColor: '#f8f9fa',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+  },
+
+  dropdownTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    textAlign: 'center',
   },
 
   categoryDropdownList: {
-    maxHeight: 200,
+    maxHeight: 180,
   },
 
   categoryDropdownItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
     // borderBottomWidth: 1,
-    // borderBottomColor: '#f0f0f0',
+    // borderBottomColor: '#f5f5f5',
   },
 
   categoryEmoji: {
-    fontSize: 18,
+    fontSize: 20,
     marginRight: 12,
   },
 
   categoryName: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#333',
     flex: 1,
   },
@@ -978,15 +1075,17 @@ const styles = StyleSheet.create({
   // friends styling 
   friendsButtonContainer: {
     position: 'relative',
+    alignItems: 'center',
   },
+
   actionButtonActive: {
     backgroundColor: '#5643F4',
-    borderRadius: 20,
   },
+
   friendsBadge: {
     position: 'absolute',
-    top: -5,
-    right: -5,
+    top: -2,
+    right: -2,
     backgroundColor: '#ff4444',
     borderRadius: 10,
     minWidth: 20,
@@ -994,43 +1093,63 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+
   friendsBadgeText: {
     color: '#fff',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 'bold',
   },
+
   friendsDropdown: {
     position: 'absolute',
-    top: 50, // Changed from bottom: 50 to top: 50
-    right: 0,
+    top: 55,
+    right: -50,
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
     shadowRadius: 8,
-    elevation: 5,
-    minWidth: 200,
-    maxHeight: 300,
+    elevation: 8,
+    minWidth: 250,
+    maxHeight: 320,
     zIndex: 1000,
   },
-  
-  // friendsSearchInput: {
-  //   padding: 12,
-  //   borderBottomWidth: 1,
-  //   borderBottomColor: '#eee',
-  //   fontSize: 16,
-  // },
+
+  friendsDropdownHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    backgroundColor: '#f8f9fa',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+  },
+
+  friendsSearchInput: {
+    flex: 1,
+    padding: 16,
+    fontSize: 16,
+    color: '#333',
+  },
+
+  friendsCloseButton: {
+    padding: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
   friendsDropdownList: {
-    maxHeight: 200,
+    maxHeight: 220,
   },
   friendsDropdownItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
+    padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#f5f5f5',
   },
+
   friendAvatar: {
     width: 32,
     height: 32,
@@ -1039,8 +1158,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
-  },
-  friendAvatarText: {
+  }, friendAvatarText: {
     color: '#fff',
     fontSize: 14,
     fontWeight: 'bold',
@@ -1097,22 +1215,87 @@ const styles = StyleSheet.create({
   friendChipRemove: {
     padding: 2,
   },
+  // feeling styling
+  feelingButtonContainer: {
+    position: 'relative',
+    alignItems: 'center',
+  },
 
-  friendsDropdownHeader: {
+  feelingButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  friendsSearchInput: {
-    flex: 1,
-    padding: 12,
-    fontSize: 16,
-  },
-  friendsCloseButton: {
-    padding: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 24,
+    //backgroundColor: '#f8f9fa',
+    // borderWidth: 1,
+    // borderColor: '#5643F4',
+    minWidth: 60,
+    height: 48,
     justifyContent: 'center',
+  },
+
+  feelingButtonText: {
+    fontSize: 18,
+    color: '#5643F4',
+    marginRight: 6,
+  },
+
+  feelingButtonActive: {
+    backgroundColor: '#5643F4',
+  },
+
+  feelingButtonTextActive: {
+    color: '#fff',
+  },
+  feelingDropdown: {
+    position: 'absolute',
+    top: 55,
+    left: '50%',
+    transform: [{ translateX: -75 }], // Center the dropdown
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 1000,
+    minWidth: 150,
+  },
+
+  feelingDropdownItem: {
+    flexDirection: 'row',
     alignItems: 'center',
+    padding: 16,
+    // borderBottomWidth: 1,
+    // borderBottomColor: '#f5f5f5',
+  },
+
+  feelingEmoji: {
+    fontSize: 22,
+    marginRight: 12,
+  },
+
+  feelingLabel: {
+    fontSize: 15,
+    color: '#333',
+  },
+
+  feelingDropdownHeader: {
+    padding: 16,
+    // borderBottomWidth: 1,
+    // borderBottomColor: '#f0f0f0',
+    //backgroundColor: '#f8f9fa',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+  },
+
+  feelingDropdownTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    textAlign: 'center',
   },
 
 });
